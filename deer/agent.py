@@ -70,6 +70,7 @@ class NeuralAgent(object):
         self._mode = -1
         self._mode_epochs_length = 0
         self._total_mode_reward = 0
+        self._curr_ep_reward = 0
         self._training_loss_averages = []
         self._Vs_on_last_episode = []
         self._in_episode = False
@@ -303,6 +304,7 @@ class NeuralAgent(object):
         self._Vs_on_last_episode = []
         is_terminal=False
         reward=0
+        self._curr_ep_reward = 0
         while maxSteps > 0:
             maxSteps -= 1
             if(self.gathering_data==True or self._mode!=-1):
@@ -313,7 +315,9 @@ class NeuralAgent(object):
                     self._state[i][-1] = obs[i]
                 
                 V, action, reward = self._step()
-                
+
+                self._curr_ep_reward += reward
+
                 self._Vs_on_last_episode.append(V)
                 if self._mode != -1:
                     self._total_mode_reward += reward

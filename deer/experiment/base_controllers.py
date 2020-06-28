@@ -389,11 +389,17 @@ class TrainerController(Controller):
         if not self._on_action and not self._on_episode and not self._on_epoch:
             self._on_action = True
 
+        # log rewards
+        self._reward_log_file = None
+
     def onStart(self, agent):
         if (self._active == False):
             return
         
         self._count = 0
+
+        # log rewards
+        self._reward_log_file = open('reward_log', 'wt')
 
     def onEpisodeEnd(self, agent, terminal_reached, reward):
         if (self._active == False):
@@ -404,6 +410,11 @@ class TrainerController(Controller):
 
         if self._show_avg_Bellman_residual: print("Average (on the epoch) training loss: {}".format(agent.avgBellmanResidual()))
         if self._show_episode_avg_V_value: print("Episode average V value: {}".format(agent.avgEpisodeVValue())) # (on non-random action time-steps)
+
+        # log rewards
+        reward = agent._curr_ep_reward
+        self._reward_log_file.write(f'{reward}\n')
+        self._reward_log_file.flush()
 
     def onEpochEnd(self, agent):
         if (self._active == False):
@@ -423,6 +434,9 @@ class TrainerController(Controller):
         if self._periodicity <= 1 or self._count % self._periodicity == 0:
             agent.train()
         self._count += 1
+
+    def onEnd(self, agent):
+        self._reward_log_file.close()
             
 
 class VerboseController(Controller):
