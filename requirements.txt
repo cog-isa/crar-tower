@@ -1,7 +1,6 @@
 absl-py==0.9.0
 astor==0.8.1
 cycler==0.10.0
--e git+git@github.com:cog-isa/crar-tower.git@e827e450f2c9e1238ff4b490224b5c55e82aa7af#egg=deer
 gast==0.2.2
 google-pasta==0.2.0
 grpcio==1.28.1
