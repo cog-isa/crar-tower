@@ -348,13 +348,23 @@ class InterleavedTestEpochController(Controller):
         elif mod == 1:
             self._summary_counter += 1
             if self._show_score:
-                score,nbr_episodes=agent.totalRewardOverLastTest()
-                print("Testing score per episode (id: {}) is {} (average over {} episode(s))".format(self._id, score, nbr_episodes))
+                score, nbr_episodes = agent.totalRewardOverLastTest()
+                print("Testing score per episode (id: {}) is {} (average over {} episode(s))".format(
+                    self._id, score, nbr_episodes))
                 self.scores.append(score)
-            if self._summary_periodicity > 0 and self._summary_counter % self._summary_periodicity == 0:
-                agent.summarizeTestPerformance()
+
+                log_str = f'score: {score:10.3f}, \
+                            average_over: {nbr_episodes:5}\n'
+
+                agent.reward_log_file.write(log_str)
+                agent.reward_log_file.flush()
+
+            #if self._summary_periodicity > 0 and self._summary_counter % self._summary_periodicity == 0:
+            #    agent.summarizeTestPerformance()
             agent.resumeTrainingMode()
             agent.setControllersActive(self._to_disable, True)
+
+
 
 
 class TrainerController(Controller):
@@ -389,17 +399,11 @@ class TrainerController(Controller):
         if not self._on_action and not self._on_episode and not self._on_epoch:
             self._on_action = True
 
-        # log rewards
-        self._reward_log_file = None
-
     def onStart(self, agent):
         if (self._active == False):
             return
         
         self._count = 0
-
-        # log rewards
-        self._reward_log_file = open('reward_log', 'wt')
 
     def onEpisodeEnd(self, agent, terminal_reached, reward):
         if (self._active == False):
@@ -412,9 +416,16 @@ class TrainerController(Controller):
         if self._show_episode_avg_V_value: print("Episode average V value: {}".format(agent.avgEpisodeVValue())) # (on non-random action time-steps)
 
         # log rewards
-        reward = agent._curr_ep_reward
-        self._reward_log_file.write(f'{reward}\n')
+        """
+        log = agent.episode_log
+        log_str = f'ep_idx: {log.ep_idx:5},' \
+                  f' steps_taken: {log.steps_taken:5},' \
+                  f' is_done: {log.is_done:5},' \
+                  f' ep_reward: {log.ep_reward:5}\n'
+
+        self._reward_log_file.write(log_str)
         self._reward_log_file.flush()
+        """
 
     def onEpochEnd(self, agent):
         if (self._active == False):
@@ -434,9 +445,6 @@ class TrainerController(Controller):
         if self._periodicity <= 1 or self._count % self._periodicity == 0:
             agent.train()
         self._count += 1
-
-    def onEnd(self, agent):
-        self._reward_log_file.close()
             
 
 class VerboseController(Controller):

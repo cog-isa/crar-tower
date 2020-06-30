@@ -11,6 +11,7 @@ import copy
 import sys
 import joblib
 from warnings import warn
+from collections import namedtuple
 
 from .experiment import base_controllers as controllers
 from .helper import tree 
@@ -47,6 +48,11 @@ class NeuralAgent(object):
         Whether we wish to train the neural network only on full histories or we wish to fill with zeroes the 
         observations before the beginning of the episode
     """
+
+    EpisodeLog = namedtuple('EpisodeLog', ['ep_idx',
+                                           'steps_taken',
+                                           'is_done',
+                                           'ep_reward'])
 
     def __init__(self, environment, learning_algo, replay_memory_size=1000000, replay_start_size=None, batch_size=32, random_state=np.random.RandomState(), exp_priority=0, train_policy=None, test_policy=None, only_full_history=True):
         inputDims = environment.inputDimensions()
@@ -264,8 +270,11 @@ class NeuralAgent(object):
         epoch_length : int
             maximum number of steps for a given epoch
         """
+        self.reward_log_file = open('reward_log', 'wt')
+
         for c in self._controllers: c.onStart(self)
         i = 0
+        episode_idx = 0
         while i < n_epochs or self._mode_epochs_length > 0:
             self._training_loss_averages = []
 
@@ -273,18 +282,22 @@ class NeuralAgent(object):
                 self._totalModeNbrEpisode=0
                 while self._mode_epochs_length > 0:
                     self._totalModeNbrEpisode += 1
-                    self._mode_epochs_length = self._runEpisode(self._mode_epochs_length)
+                    self._mode_epochs_length = self._runEpisode(self._mode_epochs_length, episode_idx)
+                    episode_idx += 1
             else:
                 length = epoch_length
                 while length > 0:
-                    length = self._runEpisode(length)
+                    length = self._runEpisode(length, episode_idx)
+                    episode_idx += 1
                 i += 1
             for c in self._controllers: c.onEpochEnd(self)
             
         self._environment.end()
         for c in self._controllers: c.onEnd(self)
 
-    def _runEpisode(self, maxSteps):
+        self.reward_log_file.close()
+
+    def _runEpisode(self, maxSteps, episode_idx):
         """
         This function runs an episode of learning. An episode ends up when the environment method "inTerminalState" 
         returns True (or when the number of steps reaches the argument "maxSteps")
@@ -304,7 +317,9 @@ class NeuralAgent(object):
         self._Vs_on_last_episode = []
         is_terminal=False
         reward=0
-        self._curr_ep_reward = 0
+        steps_taken = 0
+        curr_ep_reward = 0
+
         while maxSteps > 0:
             maxSteps -= 1
             if(self.gathering_data==True or self._mode!=-1):
@@ -315,8 +330,8 @@ class NeuralAgent(object):
                     self._state[i][-1] = obs[i]
                 
                 V, action, reward = self._step()
-
-                self._curr_ep_reward += reward
+                steps_taken += 1
+                curr_ep_reward += reward
 
                 self._Vs_on_last_episode.append(V)
                 if self._mode != -1:
@@ -334,12 +349,15 @@ class NeuralAgent(object):
             
             if is_terminal:
                 break
-            
+
+        self.episode_log = self.EpisodeLog(episode_idx,
+                                           steps_taken,
+                                           is_terminal,
+                                           curr_ep_reward)
         self._in_episode = False
         for c in self._controllers: c.onEpisodeEnd(self, is_terminal, reward)
         return maxSteps
 
-        
     def _step(self):
         """
         This method is called at each time step and performs one action in the environment.
