@@ -4,10 +4,12 @@ CRAR Neural network using Keras
 """
 
 import numpy as np
+import tensorflow as tf
 from keras import backend as K
 from keras.models import Model
 from keras.layers import Input, Layer, Dense, Flatten, Activation, Conv2D, MaxPooling2D, UpSampling2D, Reshape, Permute, Add, Subtract, Dot, Multiply, Average, Lambda, Concatenate, BatchNormalization, merge, RepeatVector, AveragePooling2D
 from keras import regularizers
+
 #np.random.seed(111111)
 
 class NN():
@@ -301,11 +303,16 @@ class NN():
             inputs.append(Input(shape=(self._n_actions,)))
             Tx= transition_model([Tx,inputs[-1]])
                         
-        x = Subtract()([Tx,enc_x_])
+        # x = Subtract()([Tx,enc_x_])
+
+        # make pairwise similarity matrix instead of subtraction
+        x_hat = Tx
+        x_next = enc_x_
+        x = Lambda(lambda x: K.dot(x[0], K.transpose(x[1])))([x_hat, x_next])
 
         input = Input(shape=(1,)) # 1-terminals (0 if transition is terminal)
         inputs.append(input)
-        x = Multiply()([x,inputs[-1]])# set to 0 if terminal because we don't care about fitting that transition
+        # x = Multiply()([x,inputs[-1]])# set to 0 if terminal because we don't care about fitting that transition
         
         model = Model(inputs=inputs, outputs=x )
         

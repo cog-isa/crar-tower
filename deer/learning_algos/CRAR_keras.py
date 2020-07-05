@@ -4,6 +4,7 @@ Code for the CRAR learning algorithm using Keras
 """
 
 import numpy as np
+import tensorflow as tf
 from keras.optimizers import SGD,RMSprop
 from keras import backend as K
 from ..base_classes import LearningAlgo
@@ -33,6 +34,19 @@ def cosine_proximity2(y_true, y_pred):
 
 def loss_diff_s_s_(y_true, y_pred):
     return K.square(   1.    -    K.sqrt(  K.clip( K.sum(y_pred,axis=-1,keepdims=True), 0.000001 , 1. )  )     ) # tend to increase y_pred --> loss -1
+
+
+def npairs_loss(y_true, y_pred):
+    y_pred = tf.convert_to_tensor(y_pred)
+    y_true = tf.cast(y_true, y_pred.dtype)
+
+    y_true = tf.cast(tf.equal(y_true, tf.transpose(y_true)), y_pred.dtype)
+    y_true /= tf.math.reduce_sum(y_true, 1, keepdims=True)
+
+    loss = tf.nn.softmax_cross_entropy_with_logits(logits=y_pred, labels=y_true)
+
+    return tf.math.reduce_mean(loss)
+
 
 class CRAR(LearningAlgo):
     """
@@ -201,6 +215,11 @@ class CRAR(LearningAlgo):
         onehot_actions[np.arange(self._batch_size), actions_val] = 1
         onehot_actions_rand = np.zeros((self._batch_size, self._n_actions))
         onehot_actions_rand[np.arange(self._batch_size), np.random.randint(0,2,(32))] = 1
+        #print(f'STATE STUFF HAS TYPE: {type(states_val)}')
+        #print(f'and len: {len(states_val)}')
+        #print(f'and shape: {states_val.shape}')
+        #print(f'and inside is type: {type(states_val[0])}')
+        #print(f'and inside shape is: {states_val[0].shape}')
         states_val=list(states_val)
         next_states_val=list(next_states_val)
             
@@ -226,7 +245,9 @@ class CRAR(LearningAlgo):
             print (R[0])
             
         # Fit transition
-        self.loss_T+=self.diff_Tx_x_.train_on_batch(states_val+next_states_val+[onehot_actions]+[(1-terminals_val)], np.zeros_like(Es))
+        x = states_val+next_states_val+[onehot_actions]+[(1-terminals_val)]
+        n_points = states_val[0].shape[0]
+        self.loss_T+=self.diff_Tx_x_.train_on_batch(x, K.eye(n_points))
         
         # Fit rewards
         self.lossR+=self.full_R.train_on_batch(states_val+[onehot_actions], rewards_val)
@@ -241,9 +262,12 @@ class CRAR(LearningAlgo):
         # Increase the entropy in the abstract features of two states
         # This works only when states_val is made up of only one observation --> FIXME
         rolled=np.roll(states_val[0],1,axis=0)
-        self.loss_disambiguate2+=self.encoder_diff.train_on_batch([states_val[0],rolled],np.reshape(np.zeros_like(Es),(self._batch_size,-1)))
 
-        self.loss_disentangle_t+=self.diff_s_s_.train_on_batch(states_val+next_states_val, np.reshape(np.zeros_like(Es),(self._batch_size,-1)))
+        # exp_loss with pairwise random states
+        # self.loss_disambiguate2+=self.encoder_diff.train_on_batch([states_val[0],rolled],np.reshape(np.zeros_like(Es),(self._batch_size,-1)))
+
+        # exp_loss with consecutive states
+        # self.loss_disentangle_t+=self.diff_s_s_.train_on_batch(states_val+next_states_val, np.reshape(np.zeros_like(Es),(self._batch_size,-1)))
 
         # Interpretable AI
         if(self._high_int_dim==False):
@@ -535,7 +559,7 @@ class CRAR(LearningAlgo):
         self.full_Q.compile(optimizer=optimizer, loss='mse')
 
 
-        self.diff_Tx_x_.compile(optimizer=optimizer1, loss='mse') # Fit transitions
+        self.diff_Tx_x_.compile(optimizer=optimizer1, loss=npairs_loss) # Fit transitions
         self.full_R.compile(optimizer=optimizer3, loss='mse') # Fit rewards
         self.full_gamma.compile(optimizer=optimizer3, loss='mse') # Fit discount
 
