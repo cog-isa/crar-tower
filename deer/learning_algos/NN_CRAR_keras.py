@@ -4,7 +4,7 @@ CRAR Neural network using Keras
 """
 
 import numpy as np
-import tensorflow as tf
+#import tensorflow as tf
 from keras import backend as K
 from keras.models import Model
 from keras.layers import Input, Layer, Dense, Flatten, Activation, Conv2D, MaxPooling2D, UpSampling2D, Reshape, Permute, Add, Subtract, Dot, Multiply, Average, Lambda, Concatenate, BatchNormalization, merge, RepeatVector, AveragePooling2D
