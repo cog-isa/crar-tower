@@ -247,7 +247,7 @@ class CRAR(LearningAlgo):
         # Fit transition
         x = states_val+next_states_val+[onehot_actions]+[(1-terminals_val)]
         n_points = states_val[0].shape[0]
-        self.loss_T+=self.diff_Tx_x_.train_on_batch(x, K.eye(n_points))
+        self.loss_T+=self.diff_Tx_x_.train_on_batch(x, np.eye(n_points))
         
         # Fit rewards
         self.lossR+=self.full_R.train_on_batch(states_val+[onehot_actions], rewards_val)
