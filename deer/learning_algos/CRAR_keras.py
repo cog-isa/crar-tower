@@ -40,8 +40,8 @@ def npairs_loss(y_true, y_pred):
     y_pred = tf.convert_to_tensor(y_pred)
     y_true = tf.cast(y_true, y_pred.dtype)
 
-    y_true = tf.cast(tf.equal(y_true, tf.transpose(y_true)), y_pred.dtype)
-    y_true /= tf.math.reduce_sum(y_true, 1, keepdims=True)
+    #y_true = tf.cast(tf.equal(y_true, tf.transpose(y_true)), y_pred.dtype)
+    #y_true /= tf.math.reduce_sum(y_true, 1, keepdims=True)
 
     loss = tf.nn.softmax_cross_entropy_with_logits(logits=y_pred, labels=y_true)
 
