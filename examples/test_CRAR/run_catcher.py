@@ -9,6 +9,7 @@ from joblib import hash, dump
 import os
 
 import tensorflow as tf
+import wandb
 
 from deer.default_parser import process_args
 from deer.agent import NeuralAgent
@@ -17,6 +18,9 @@ from catcher_env import MyEnv as catcher_env
 import deer.experiment.base_controllers as bc
 
 from deer.policies import EpsilonGreedyPolicy
+
+
+wandb.init(project='crar-tower')
 
 gpus = tf.config.experimental.list_physical_devices('GPU')
 if gpus:

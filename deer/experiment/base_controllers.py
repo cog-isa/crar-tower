@@ -12,6 +12,9 @@ import numpy as np
 import joblib
 import os
 
+import wandb
+
+
 class Controller(object):
     """A base controller that does nothing when receiving the various signals emitted by an agent. This class should 
     be the base class of any controller you would want to define.
@@ -358,6 +361,7 @@ class InterleavedTestEpochController(Controller):
 
                 agent.reward_log_file.write(log_str)
                 agent.reward_log_file.flush()
+                wandb.log({'score': score})
 
             #if self._summary_periodicity > 0 and self._summary_counter % self._summary_periodicity == 0:
             #    agent.summarizeTestPerformance()
