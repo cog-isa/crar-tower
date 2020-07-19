@@ -4,3 +4,6 @@
 .python-version
 params
 deer.egg-info
+wandb
+reward_log
+obstacle-tower-env
