@@ -20,7 +20,7 @@ import deer.experiment.base_controllers as bc
 from deer.policies import EpsilonGreedyPolicy
 
 
-wandb.init(project='crar-tower')
+# wandb.init(project='crar-tower')
 
 gpus = tf.config.experimental.list_physical_devices('GPU')
 if gpus:

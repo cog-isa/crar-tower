@@ -12,7 +12,7 @@ from mpl_toolkits.axes_grid1 import host_subplot
 import mpl_toolkits.axisartist as AA
 import matplotlib.pyplot as plt
 plt.switch_backend('agg') # For remote servers
-import copy 
+import copy
 
 class MyEnv(Environment):
     VALIDATION_MODE = 0

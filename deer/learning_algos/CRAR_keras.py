@@ -83,7 +83,7 @@ class CRAR(LearningAlgo):
         """ Initialize the environment
         
         """
-        LearningAlgo.__init__(self,environment, batch_size)
+        LearningAlgo.__init__(self, environment, batch_size)
 
         self._rho = rho
         self._rms_epsilon = rms_epsilon
@@ -270,6 +270,7 @@ class CRAR(LearningAlgo):
         # self.loss_disentangle_t+=self.diff_s_s_.train_on_batch(states_val+next_states_val, np.reshape(np.zeros_like(Es),(self._batch_size,-1)))
 
         # Interpretable AI
+        """
         if(self._high_int_dim==False):
             target_modif_features=np.zeros((self._n_actions,self._internal_dim))
             ## Catcher
@@ -289,7 +290,7 @@ class CRAR(LearningAlgo):
             onehot_actions_tiled = np.repeat(onehot_actions_tiled,self._batch_size,axis=0)
                 
             self.loss_interpret+=self.force_features.train_on_batch(states_val_tiled+[onehot_actions_tiled], target_modif_features)
-
+        """
     
 
         
