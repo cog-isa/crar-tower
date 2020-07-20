@@ -12,6 +12,7 @@ import sys
 import joblib
 from warnings import warn
 from collections import namedtuple
+import wandb
 
 from .experiment import base_controllers as controllers
 from .helper import tree 
@@ -354,6 +355,14 @@ class NeuralAgent(object):
                                            steps_taken,
                                            is_terminal,
                                            curr_ep_reward)
+        wandb.log({
+            'episode_idx': episode_idx,
+            'steps_taken': steps_taken,
+            'curr_ep_reward': curr_ep_reward,
+            'wrapper_episodic_steps': self._environment.episodic_steps,
+            'wrapper_episodic_return': self._environment.episodic_return,
+            'wrapper_max_floor': self._environment.current_floor
+        })
         self._in_episode = False
         for c in self._controllers: c.onEpisodeEnd(self, is_terminal, reward)
         return maxSteps

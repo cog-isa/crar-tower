@@ -361,7 +361,7 @@ class InterleavedTestEpochController(Controller):
 
                 agent.reward_log_file.write(log_str)
                 agent.reward_log_file.flush()
-                wandb.log({'score': score})
+                # wandb.log({'score': score})
 
             #if self._summary_periodicity > 0 and self._summary_counter % self._summary_periodicity == 0:
             #    agent.summarizeTestPerformance()

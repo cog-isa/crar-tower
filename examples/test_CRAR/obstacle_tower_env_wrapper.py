@@ -17,15 +17,27 @@ class ObstacleTowerEnvWrapper:
         self._obs = None
         self._done = None
 
+        self.episodic_steps = 0
+        self.episodic_return = 0.0
+        self.current_floor = 0
+
     def reset(self, mode):
         self._obs = self._env.reset()
+
+        self.episodic_steps = 0
+        self.episodic_return = 0.0
+        self.current_floor = 0
 
     def act(self, action):
         obs, reward, done, info = self._env.step(action)
 
-        # channels first for framework needs
         self._obs = obs
         self._done = done
+
+        self.episodic_steps += 1
+        self.episodic_return += reward
+        self.current_floor = max(self.current_floor, info["current_floor"])
+
         return reward
 
     def inputDimensions(self):
