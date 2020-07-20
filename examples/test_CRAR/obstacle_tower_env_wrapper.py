@@ -23,14 +23,14 @@ class ObstacleTowerEnvWrapper:
     def act(self, action):
         obs, reward, done, info = self._env.step(action)
 
+        # channels first for framework needs
         self._obs = obs
         self._done = done
-
         return reward
 
     def inputDimensions(self):
         frame_stack_size = 1
-        obs_shape = (84, 84, 1)
+        obs_shape = (1, 84, 84)
         return [(frame_stack_size,) + obs_shape]
 
     def observationType(self, subject):
@@ -40,7 +40,7 @@ class ObstacleTowerEnvWrapper:
         return 54
 
     def observe(self):
-        return [self._obs]
+        return [np.transpose(self._obs, axes=(2, 0, 1))]
 
     def inTerminalState(self):
         return self._done

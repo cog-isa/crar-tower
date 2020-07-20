@@ -215,11 +215,6 @@ class CRAR(LearningAlgo):
         onehot_actions[np.arange(self._batch_size), actions_val] = 1
         onehot_actions_rand = np.zeros((self._batch_size, self._n_actions))
         onehot_actions_rand[np.arange(self._batch_size), np.random.randint(0,2,(32))] = 1
-        #print(f'STATE STUFF HAS TYPE: {type(states_val)}')
-        #print(f'and len: {len(states_val)}')
-        #print(f'and shape: {states_val.shape}')
-        #print(f'and inside is type: {type(states_val[0])}')
-        #print(f'and inside shape is: {states_val[0].shape}')
         states_val=list(states_val)
         next_states_val=list(next_states_val)
             
@@ -227,22 +222,6 @@ class CRAR(LearningAlgo):
         Es=self.encoder.predict(states_val)
         ETs=self.transition.predict([Es,onehot_actions])
         R=self.R.predict([Es,onehot_actions])
-                   
-        if(self.update_counter%500==0):
-            print ("Printing a few elements useful for debugging:")
-            #print ("states_val[0][0]")
-            #print (states_val[0][0])
-            #print ("next_states_val[0][0]")
-            #print (next_states_val[0][0])
-            print ("actions_val[0], rewards_val[0], terminals_val[0]")
-            print (actions_val[0], rewards_val[0], terminals_val[0])
-            print ("Es[0],ETs[0],Es_[0]")
-            if(Es.ndim==4):
-                print (np.transpose(Es, (0, 3, 1, 2))[0],np.transpose(ETs, (0, 3, 1, 2))[0],np.transpose(Es_, (0, 3, 1, 2))[0])    # data_format='channels_last' --> 'channels_first'
-            else:
-                print (Es[0],ETs[0],Es_[0])
-            print ("R[0]")
-            print (R[0])
             
         # Fit transition
         x = states_val+next_states_val+[onehot_actions]+[(1-terminals_val)]
