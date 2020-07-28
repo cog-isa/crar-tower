@@ -1,9 +1,14 @@
+"""
+Code for the CRAR learning algorithm using Keras
+
+"""
+
 import numpy as np
 import tensorflow as tf
 from keras.optimizers import SGD, RMSprop
 from keras import backend as K
-from ..base_classes import LearningAlgo
-from .NN_CRAR_keras import NN  # Default Neural network used
+from legacy.base_classes.learning_algo import LearningAlgo
+from .submodels_original import NN
 import copy
 
 
@@ -48,7 +53,7 @@ def npairs_loss(y_true, y_pred):
 class CRAR(LearningAlgo):
     """
     Combined Reinforcement learning via Abstract Representations (CRAR) using Keras
-    
+
     Parameters
     -----------
     environment : object from class Environment
@@ -80,7 +85,7 @@ class CRAR(LearningAlgo):
                  batch_size=32, update_rule="rmsprop", random_state=np.random.RandomState(), double_Q=False,
                  neural_network=NN, **kwargs):
         """ Initialize the environment
-        
+
         """
         LearningAlgo.__init__(self, environment, batch_size)
 
@@ -273,7 +278,7 @@ class CRAR(LearningAlgo):
                 states_val_tiled.append(np.tile(obs,(self._n_actions,1,1,1)))
             onehot_actions_tiled = np.diag(np.ones(self._n_actions))#np.zeros((self._batch_size*self._n_actions, self._n_actions))
             onehot_actions_tiled = np.repeat(onehot_actions_tiled,self._batch_size,axis=0)
-                
+
             self.loss_interpret+=self.force_features.train_on_batch(states_val_tiled+[onehot_actions_tiled], target_modif_features)
         """
 
@@ -322,8 +327,8 @@ class CRAR(LearningAlgo):
 
         q_vals[np.arange(self._batch_size), actions_val] = target
 
-        # Is it possible to use something more flexible than this? 
-        # Only some elements of next_q_vals are actual value that I target. 
+        # Is it possible to use something more flexible than this?
+        # Only some elements of next_q_vals are actual value that I target.
         # My loss should only take these into account.
         # Workaround here is that many values are already "exact" in this update
 
@@ -357,7 +362,7 @@ class CRAR(LearningAlgo):
 
     def qValues_planning(self, state_val, R, gamma, T, Q, d=5):
         """ Get the average Q-values up to planning depth d for one pseudo-state.
-        
+
         Arguments
         ---------
         state_val : array of objects (or list of objects)
@@ -428,7 +433,7 @@ class CRAR(LearningAlgo):
         return QD_plan
 
     def qValues_planning_abstr(self, state_abstr_val, R, gamma, T, Q, d, branching_factor=None):
-        """ Get the q values for pseudo-state(s) with a planning depth d. 
+        """ Get the q values for pseudo-state(s) with a planning depth d.
         This function is called recursively by decreasing the depth d at every step.
 
         Arguments
@@ -457,8 +462,8 @@ class CRAR(LearningAlgo):
 
         this_branching_factor = branching_factor.pop(0)
         if (n == 1):
-            # We require that the first branching factor is self._n_actions so that this function return values 
-            # with the right dimension (=self._n_actions). 
+            # We require that the first branching factor is self._n_actions so that this function return values
+            # with the right dimension (=self._n_actions).
             this_branching_factor = self._n_actions
 
         if (d == 0):
@@ -479,7 +484,7 @@ class CRAR(LearningAlgo):
                 else:
                     print("error")
             else:
-                # A subset of the actions corresponding to the best estimated Q-values are considered et each branch 
+                # A subset of the actions corresponding to the best estimated Q-values are considered et each branch
                 estim_Q_values = Q.predict([state_abstr_val])
                 ind = np.argpartition(estim_Q_values, -this_branching_factor)[:, -this_branching_factor:]
                 # Replacing ind if we want random branching
@@ -621,3 +626,4 @@ class CRAR(LearningAlgo):
 
         self.encoder.compile(optimizer=optimizer4,
                              loss=mean_squared_error_p)
+
