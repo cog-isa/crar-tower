@@ -1,5 +1,7 @@
 import sys
 
+import numpy as np
+
 
 class CircularBuffer(object):
     def __init__(self, size, elemShape=(), extension=0.1, dtype="float32"):

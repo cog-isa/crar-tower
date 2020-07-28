@@ -3,7 +3,7 @@ from warnings import warn
 import numpy as np
 from ray.rllib.policy.policy import Policy
 
-from env.env_wrapper import EnvStub
+from envs.env_wrapper import ObstacleTowerEnvStub
 from legacy import params
 from legacy.model import algo_original
 from legacy.epsilon_greedy_policy import EpsilonGreedyPolicy
@@ -16,14 +16,8 @@ class CrarPolicy(Policy):
     def __init__(self, observation_space, action_space, config):
         super().__init__(observation_space, action_space, config)
 
-        # instantiate stuff
-
-        if config['deterministic']:
-            rng = np.random.RandomState(123456)
-        else:
-            rng = np.random.RandomState()
-
-        env_stub = EnvStub()
+        # env_stub = ObstacleTowerEnvStub()
+        env_stub = config['env']
 
         learning_algo = algo_original.CRAR(
                 env_stub,
@@ -34,12 +28,12 @@ class CrarPolicy(Policy):
                 config['freeze_interval'],
                 config['batch_size'],
                 config['update_rule'],
-                rng,
+                config['rng'],
                 double_Q=True,
                 high_int_dim=params.HIGH_INT_DIM,
                 internal_dim=3)
 
-        self._legacy_init(config, env_stub, rng, learning_algo)
+        self._legacy_init(config, env_stub, config['rng'], learning_algo)
 
     def _legacy_init(self, config, env_stub, rng, learning_algo):
         """

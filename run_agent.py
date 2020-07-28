@@ -1,5 +1,7 @@
 import sys
 
+import numpy as np
+import gym
 import ray
 from ray.rllib.policy.sample_batch import SampleBatch
 from ray.rllib.evaluation import RolloutWorker
@@ -7,7 +9,8 @@ from ray.rllib.evaluation.metrics import collect_metrics
 from ray import tune
 
 from model.policy import CrarPolicy
-from env.env_wrapper import make_env
+from envs.env_wrapper import make_obstacle_tower_env
+from envs.env_wrapper import CatcherEnv
 from utils.tf_utils import tf_init_gpus
 
 from legacy import params
@@ -20,10 +23,21 @@ def training_workflow(config, reporter):
 
     parsed_params = default_parser.process_args(sys.argv[1:], params.Defaults)
 
+    rng = np.random.RandomState(123456)
+
     # setup policy and evaluation actors
-    env = make_env()
-    policy = CrarPolicy(env.observation_space, env.action_space, config=vars(parsed_params))
-    worker = RolloutWorker.as_remote().remote(lambda c: make_env(), CrarPolicy)
+    # env = make_obstacle_tower_env()
+    env = CatcherEnv(rng, higher_dim_obs=params.HIGHER_DIM_OBS, reverse=False)
+
+    custom_config = vars(parsed_params)
+    custom_config['env'] = env
+    custom_config['rng'] = rng
+
+    policy = CrarPolicy(env.observation_space, env.action_space, config=custom_config)
+    worker = RolloutWorker.as_remote().remote(
+        lambda c: CatcherEnv(rng, higher_dim_obs=params.HIGHER_DIM_OBS, reverse=False),
+        CrarPolicy,
+        policy_config=custom_config)
 
     for _ in range(config['num_iters']):
         # broadcast weights to evaluation worker
@@ -41,7 +55,7 @@ def training_workflow(config, reporter):
 
 
 if __name__ == '__main__':
-    ray.init()
+    ray.init(local_mode=True)
 
     config = {
         'num_workers': 1,
