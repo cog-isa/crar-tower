@@ -70,5 +70,9 @@ if __name__ == '__main__':
     }
 
     tune.run(training_workflow,
-             loggers=[WandbLogger],
-             config=config)
+             resources_per_trial={
+                 "gpu": 2,
+                 "cpu": 32
+             },
+             config=config,
+             loggers=[WandbLogger])
