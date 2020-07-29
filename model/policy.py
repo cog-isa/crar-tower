@@ -34,6 +34,7 @@ class CrarPolicy(Policy):
                 internal_dim=3)
 
         self._legacy_init(config, env_stub, config['rng'], learning_algo)
+        self._action_counter = 0
 
     def _legacy_init(self, config, env_stub, rng, learning_algo):
         """
@@ -41,6 +42,7 @@ class CrarPolicy(Policy):
         """
         replay_memory_size = config['replay_memory_size']
         replay_start_size = max(env_stub.inputDimensions()[i][0] for i in range(len(env_stub.inputDimensions())))
+        # replay_start_size = 100
         batch_size = config['batch_size']
         random_state = rng
         exp_priority = 0
@@ -97,27 +99,36 @@ class CrarPolicy(Policy):
                         timestep=None,
                         **kwargs):
 
-        random_actions = np.array([self.action_space.sample()
-                                   for _ in obs_batch])
-        return random_actions, [], {}
-        """
-        if self._mode != -1:
-            # Act according to the test policy if not in training mode
-            action, V = self._test_policy.action(self._state, mode=self._mode, dataset=self._dataset)
-        else:
-            if self._dataset.n_elems > self._replay_start_size:
-                # follow the train policy
-                action, V = self._train_policy.action(self._state, mode=None,
-                                                      dataset=self._dataset)  # is self._state the only way to store/pass the state?
-            else:
-                # Still gathering initial data: choose dummy action
-                action, V = self._train_policy.randomAction()
+        print(f'compute_actions() with obs_batch len {len(obs_batch)}, id {self._action_counter}')
+        self._action_counter += 1
 
-        for c in self._controllers: c.onActionChosen(self, action)
-        return action
-        """
+        def legacy_choose_action(state):
+
+            return 0
+
+            if self._mode != -1:
+                # Act according to the test policy if not in training mode
+                action, V = self._test_policy.action(state, mode=self._mode, dataset=self._dataset)
+            else:
+                if self._dataset.n_elems > self._replay_start_size:
+                    # follow the train policy
+                    action, V = self._train_policy.action(state, mode=None,
+                                                          dataset=self._dataset)
+                else:
+                    # Still gathering initial data: choose dummy action
+                    action, V = self._train_policy.randomAction()
+            return action
+
+        actions = np.array([legacy_choose_action([obs])
+                            for obs in obs_batch])
+
+        #actions = np.array([self.action_space.sample()
+        #                    for _ in obs_batch])
+
+        return actions, [], {}
 
     def learn_on_batch(self, samples):
+        print('learn_on_batch()')
         # add samples to replay, one by one...
         obs = samples[samples.CUR_OBS]
         actions = samples[samples.ACTIONS]

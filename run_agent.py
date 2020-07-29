@@ -34,25 +34,26 @@ def training_workflow(config, reporter):
     custom_config['env'] = env
     custom_config['rng'] = rng
 
-    policy = CrarPolicy(env.observation_space, env.action_space, config=custom_config)
-    worker = RolloutWorker.as_remote().remote(
+    worker = RolloutWorker(
         lambda c: CatcherEnv(rng, higher_dim_obs=params.HIGHER_DIM_OBS, reverse=False),
         CrarPolicy,
         policy_config=custom_config)
 
+    # policy = worker.get_policy()
+
     for _ in range(config['num_iters']):
         # broadcast weights to evaluation worker
-        weights = ray.put({'default_policy': policy.get_weights()})
-        worker.set_weights.remote(weights)
+        # weights = ray.put({'default_policy': policy.get_weights()})
+        # worker.set_weights.remote(weights)
 
         # gather batch of samples
-        samples = SampleBatch.concat_samples(
-                    ray.get([worker.sample.remote()]))
+        samples = worker.sample()
 
         # improve policy
-        policy.learn_on_batch(samples)
+        # policy.learn_on_batch(samples)
+        worker.learn_on_batch(samples)
 
-        reporter(**collect_metrics(remote_workers=[worker]))
+        # reporter(**collect_metrics(remote_workers=[worker]))
 
 
 if __name__ == '__main__':

@@ -422,13 +422,13 @@ class CRAR(LearningAlgo):
             Qd = self.qValues_planning_abstr(encoded_x, R, gamma, T, Q, d=i,
                                              branching_factor=[self._n_actions, 2, 2, 2, 2, 2, 2, 2]).reshape(
                 len(encoded_x), -1)
-            print("Qd,i")
-            print(Qd, i)
+            # print("Qd,i")
+            # print(Qd, i)
             QD_plan += Qd
         QD_plan = QD_plan / (d + 1)
 
-        print("QD_plan")
-        print(QD_plan)
+        # print("QD_plan")
+        # print(QD_plan)
 
         return QD_plan
 
