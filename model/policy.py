@@ -99,13 +99,10 @@ class CrarPolicy(Policy):
                         timestep=None,
                         **kwargs):
 
-        print(f'compute_actions() with obs_batch len {len(obs_batch)}, id {self._action_counter}')
-        self._action_counter += 1
+        # print(f'compute_actions() with obs_batch len {len(obs_batch)}, id {self._action_counter}')
+        # self._action_counter += 1
 
         def legacy_choose_action(state):
-
-            return 0
-
             if self._mode != -1:
                 # Act according to the test policy if not in training mode
                 action, V = self._test_policy.action(state, mode=self._mode, dataset=self._dataset)
@@ -128,7 +125,7 @@ class CrarPolicy(Policy):
         return actions, [], {}
 
     def learn_on_batch(self, samples):
-        print('learn_on_batch()')
+        # print('learn_on_batch()')
         # add samples to replay, one by one...
         obs = samples[samples.CUR_OBS]
         actions = samples[samples.ACTIONS]

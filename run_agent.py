@@ -53,7 +53,7 @@ def training_workflow(config, reporter):
         # policy.learn_on_batch(samples)
         worker.learn_on_batch(samples)
 
-        # reporter(**collect_metrics(remote_workers=[worker]))
+        reporter(**collect_metrics(local_worker=worker))
 
 
 if __name__ == '__main__':
