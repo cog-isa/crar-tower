@@ -7,6 +7,7 @@ from ray.rllib.policy.sample_batch import SampleBatch
 from ray.rllib.evaluation import RolloutWorker
 from ray.rllib.evaluation.metrics import collect_metrics
 from ray import tune
+from wandb.ray import WandbLogger
 
 from model.policy import CrarPolicy
 from envs.env_wrapper import make_obstacle_tower_env
@@ -58,9 +59,15 @@ if __name__ == '__main__':
     ray.init(local_mode=True)
 
     config = {
-        'num_workers': 1,
-        'num_iters': 1000
+        'num_workers': 0,
+        'num_iters': 10000,
+        'env_config': {
+            'wandb': {
+                'project': 'crar-tower'
+            }
+        }
     }
 
     tune.run(training_workflow,
+             loggers=[WandbLogger],
              config=config)
