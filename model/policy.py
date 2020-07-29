@@ -96,6 +96,11 @@ class CrarPolicy(Policy):
                         explore=None,
                         timestep=None,
                         **kwargs):
+
+        random_actions = np.array([self.action_space.sample()
+                                   for _ in obs_batch])
+        return random_actions, [], {}
+        """
         if self._mode != -1:
             # Act according to the test policy if not in training mode
             action, V = self._test_policy.action(self._state, mode=self._mode, dataset=self._dataset)
@@ -110,33 +115,39 @@ class CrarPolicy(Policy):
 
         for c in self._controllers: c.onActionChosen(self, action)
         return action
+        """
 
     def learn_on_batch(self, samples):
         # add samples to replay, one by one...
-        for sample in samples:
-            self._dataset.addSample(s, a, reward, is_terminal, priority=1)
+        obs = samples[samples.CUR_OBS]
+        actions = samples[samples.ACTIONS]
+        rewards = samples[samples.REWARDS]
+        next_obs = samples[samples.NEXT_OBS]
+        dones = samples[samples.DONES]
+        for s, a, r, s_next, done in zip(obs, actions, rewards, next_obs, dones):
+            self._dataset.addSample(s, a, r, done, priority=1)
 
         # sample a random batch of data and perform a Q-learning iteration
         # make sure replay has enough samples
-        if self._dataset.n_elems <= self._replay_start_size:
-            return
+        if self._dataset.n_elems > self._replay_start_size:
+            try:
+                if hasattr(self._learning_algo, 'nstep'):
+                    observations, actions, rewards, terminals, rndValidIndices = self._dataset.randomBatch_nstep(
+                        self._batch_size, self._learning_algo.nstep, self._exp_priority)
+                    loss, loss_ind = self._learning_algo.train(observations, actions, rewards, terminals)
+                else:
+                    states, actions, rewards, next_states, terminals, rndValidIndices = self._dataset.randomBatch(
+                        self._batch_size, self._exp_priority)
+                    loss, loss_ind = self._learning_algo.train(states, actions, rewards, next_states, terminals)
 
-        try:
-            if hasattr(self._learning_algo, 'nstep'):
-                observations, actions, rewards, terminals, rndValidIndices = self._dataset.randomBatch_nstep(
-                    self._batch_size, self._learning_algo.nstep, self._exp_priority)
-                loss, loss_ind = self._learning_algo.train(observations, actions, rewards, terminals)
-            else:
-                states, actions, rewards, next_states, terminals, rndValidIndices = self._dataset.randomBatch(
-                    self._batch_size, self._exp_priority)
-                loss, loss_ind = self._learning_algo.train(states, actions, rewards, next_states, terminals)
+                self._training_loss_averages.append(loss)
+                if self._exp_priority:
+                    self._dataset.updatePriorities(pow(loss_ind, self._exp_priority) + 0.0001, rndValidIndices[1])
 
-            self._training_loss_averages.append(loss)
-            if self._exp_priority:
-                self._dataset.updatePriorities(pow(loss_ind, self._exp_priority) + 0.0001, rndValidIndices[1])
+            except SliceError as e:
+                warn("Training not done - " + str(e), AgentWarning)
 
-        except SliceError as e:
-            warn("Training not done - " + str(e), AgentWarning)
+        return {}
 
     def get_weights(self):
         weights = self._learning_algo.getAllParams()

@@ -150,16 +150,16 @@ class LegacyCatcherEnv(Environment):
 class CatcherEnv(LegacyCatcherEnv):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.observation_space = gym.spaces.Box(0, 1, shape=(10, 10))
+        self.observation_space = gym.spaces.Box(0, 1, shape=(1, 36, 36))
         self.action_space = gym.spaces.Discrete(2)
 
     def reset(self, mode=-1):
         obs = super(CatcherEnv, self).reset()
-        return obs[0][0]
+        return [np.zeros((36, 36))]
 
     def step(self, action):
         reward = self.act(action)
         obs = self.observe()
         done = self.inTerminalState()
         info = {}
-        return obs[0][0], reward, done, info
+        return obs, reward, done, info
