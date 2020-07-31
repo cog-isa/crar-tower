@@ -1,4 +1,5 @@
 import sys
+import os
 
 import numpy as np
 import gym
@@ -71,8 +72,8 @@ if __name__ == '__main__':
 
     tune.run(training_workflow,
              resources_per_trial={
-                 "gpu": 2,
-                 "cpu": 32
+                 "gpu": '2',
+                 "cpu": os.cpu_count()
              },
              config=config,
              loggers=[WandbLogger])

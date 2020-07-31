@@ -234,13 +234,13 @@ class CRAR(LearningAlgo):
 
         # Fit transition
         x = states_val + next_states_val + [onehot_actions] + [(1 - terminals_val)]
-        self.loss_T += self.diff_Tx_x_.train_on_batch(x, np.zeros_like(Es))
+        loss_T = self.diff_Tx_x_.train_on_batch(x, np.zeros_like(Es))
 
         # Fit rewards
-        self.lossR += self.full_R.train_on_batch(states_val + [onehot_actions], rewards_val)
+        lossR = self.full_R.train_on_batch(states_val + [onehot_actions], rewards_val)
 
         # Fit gammas
-        self.loss_gamma += self.full_gamma.train_on_batch(states_val + [onehot_actions],
+        loss_gamma = self.full_gamma.train_on_batch(states_val + [onehot_actions],
                                                           (1 - terminals_val[:]) * self._df)
 
         # Loss to ensure entropy but limited volume in abstract state space, avg=0 and sigma=1
@@ -342,7 +342,7 @@ class CRAR(LearningAlgo):
 
         self.update_counter += 1
 
-        return np.sqrt(loss), loss_ind, self.loss_T, self.lossR, self.loss_gamma
+        return np.sqrt(loss), loss_ind, loss_T, lossR, loss_gamma
 
     def qValues(self, state_val):
         """ Get the q values for one pseudo-state (without planning)
