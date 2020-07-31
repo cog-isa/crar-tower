@@ -39,7 +39,7 @@ def training_workflow(config, reporter):
         lambda c: CatcherEnv(rng, higher_dim_obs=params.HIGHER_DIM_OBS, reverse=False),
         CrarPolicy,
         policy_config=custom_config,
-        rollout_fragment_length=90)
+        rollout_fragment_length=100)
 
     # policy = worker.get_policy()
 
@@ -77,7 +77,7 @@ if __name__ == '__main__':
 
     tune.run(training_workflow,
              resources_per_trial={
-                 "gpu": 0,
+                 "gpu": 2,
                  "cpu": os.cpu_count()
              },
              config=config,

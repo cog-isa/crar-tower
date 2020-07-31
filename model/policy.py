@@ -155,7 +155,7 @@ class CrarPolicy(Policy):
                 if self._exp_priority:
                     self._dataset.updatePriorities(pow(loss_ind, self._exp_priority) + 0.0001, rndValidIndices[1])
 
-        self._lr_scheduler.new_samples_seen(len(obs))
+            self._lr_scheduler.new_samples_seen(n_samples)
 
         return {'q_loss': q_loss,
                 'transition_loss': transition_loss,
