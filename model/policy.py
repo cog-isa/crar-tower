@@ -9,6 +9,7 @@ from legacy.model import algo_original
 from legacy.epsilon_greedy_policy import EpsilonGreedyPolicy
 from legacy.replay.dataset import DataSet
 from legacy.utils.exceptions import AgentError, AgentWarning, SliceError
+from legacy.model.controllers import LearningRateScheduler
 
 
 class CrarPolicy(Policy):
@@ -35,6 +36,11 @@ class CrarPolicy(Policy):
 
         self._legacy_init(config, env_stub, config['rng'], learning_algo)
         self._action_counter = 0
+
+        self._lr_scheduler = LearningRateScheduler(config['learning_rate'],
+                                                   config['learning_rate_decay'],
+                                                   decay_every=2000,
+                                                   learning_algo=learning_algo)
 
     def _legacy_init(self, config, env_stub, rng, learning_algo):
         """
@@ -123,7 +129,6 @@ class CrarPolicy(Policy):
         return actions, [], {}
 
     def learn_on_batch(self, samples):
-        # print('learn_on_batch()')
         # add samples to replay, one by one...
         obs = samples[samples.CUR_OBS]
         actions = samples[samples.ACTIONS]
@@ -153,7 +158,10 @@ class CrarPolicy(Policy):
             except SliceError as e:
                 warn("Training not done - " + str(e), AgentWarning)
 
-        return {'q-loss': loss}
+        self._lr_scheduler.new_samples_seen(len(obs))
+
+        return {'q-loss': loss,
+                'lr': self._lr_scheduler.lr}
 
     def get_weights(self):
         weights = self._learning_algo.getAllParams()
