@@ -12,7 +12,9 @@ RUN add-apt-repository -y ppa:deadsnakes/ppa \
         python3.7 \
         python3-pip \
         # opencv dependencies
-        libsm6 libxext6 libxrender-dev
+        libsm6 libxext6 libxrender-dev \
+        # some log sync req
+        rsync
 
 RUN git clone https://github.com/agorodetskiy/crar-rllib.git \
     && cd crar-rllib \
