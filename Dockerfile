@@ -19,6 +19,5 @@ RUN git clone https://github.com/agorodetskiy/crar-rllib.git \
     && git checkout master \
     && python3 -m pip install -U pip setuptools wheel \
     && python3 -m pip install -r requirements.txt \
-    && python3 -m pip install opencv-python
 
 CMD bash

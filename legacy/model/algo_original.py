@@ -341,7 +341,7 @@ class CRAR(LearningAlgo):
 
         self.update_counter += 1
 
-        return np.sqrt(loss), loss_ind
+        return np.sqrt(loss), loss_ind, self.loss_T, self.lossR, self.loss_gamma
 
     def qValues(self, state_val):
         """ Get the q values for one pseudo-state (without planning)

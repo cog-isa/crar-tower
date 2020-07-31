@@ -144,13 +144,14 @@ class CrarPolicy(Policy):
         if self._dataset.n_elems > self._replay_start_size:
             try:
                 if hasattr(self._learning_algo, 'nstep'):
-                    observations, actions, rewards, terminals, rndValidIndices = self._dataset.randomBatch_nstep(
-                        self._batch_size, self._learning_algo.nstep, self._exp_priority)
-                    loss, loss_ind = self._learning_algo.train(observations, actions, rewards, terminals)
-                else:
-                    states, actions, rewards, next_states, terminals, rndValidIndices = self._dataset.randomBatch(
-                        self._batch_size, self._exp_priority)
-                    loss, loss_ind = self._learning_algo.train(states, actions, rewards, next_states, terminals)
+                    assert False, 'CRYA CRYA'
+                    #observations, actions, rewards, terminals, rndValidIndices = self._dataset.randomBatch_nstep(
+                    #    self._batch_size, self._learning_algo.nstep, self._exp_priority)
+                    #loss, loss_ind = self._learning_algo.train(observations, actions, rewards, terminals)
+                states, actions, rewards, next_states, terminals, rndValidIndices = self._dataset.randomBatch(
+                    self._batch_size, self._exp_priority)
+                loss, loss_ind, transition_loss, reward_loss, gamma_loss = \
+                    self._learning_algo.train(states, actions, rewards, next_states, terminals)
 
                 if self._exp_priority:
                     self._dataset.updatePriorities(pow(loss_ind, self._exp_priority) + 0.0001, rndValidIndices[1])
@@ -160,7 +161,10 @@ class CrarPolicy(Policy):
 
         self._lr_scheduler.new_samples_seen(len(obs))
 
-        return {'q-loss': loss,
+        return {'q_loss': loss,
+                'transition_loss': transition_loss,
+                'reward_loss': reward_loss,
+                'gamma_loss': gamma_loss,
                 'lr': self._lr_scheduler.lr}
 
     def get_weights(self):
