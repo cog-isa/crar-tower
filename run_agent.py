@@ -51,9 +51,9 @@ def training_workflow(config, reporter):
 
         # improve policy
         # policy.learn_on_batch(samples)
-        worker.learn_on_batch(samples)
+        info = worker.learn_on_batch(samples)
 
-        reporter(**collect_metrics(local_worker=worker))
+        reporter(**collect_metrics(local_worker=worker), **info['default_policy'])
 
 
 if __name__ == '__main__':

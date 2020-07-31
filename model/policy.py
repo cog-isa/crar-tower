@@ -70,8 +70,6 @@ class CrarPolicy(Policy):
         self._mode_epochs_length = 0
         self._total_mode_reward = 0
         self._curr_ep_reward = 0
-        self._training_loss_averages = []
-        self._Vs_on_last_episode = []
         self._in_episode = False
         self._selected_action = -1
         self._state = []
@@ -135,6 +133,7 @@ class CrarPolicy(Policy):
         for s, a, r, s_next, done in zip(obs, actions, rewards, next_obs, dones):
             self._dataset.addSample(s, a, r, done, priority=1)
 
+        loss = None
         # sample a random batch of data and perform a Q-learning iteration
         # make sure replay has enough samples
         if self._dataset.n_elems > self._replay_start_size:
@@ -148,14 +147,13 @@ class CrarPolicy(Policy):
                         self._batch_size, self._exp_priority)
                     loss, loss_ind = self._learning_algo.train(states, actions, rewards, next_states, terminals)
 
-                self._training_loss_averages.append(loss)
                 if self._exp_priority:
                     self._dataset.updatePriorities(pow(loss_ind, self._exp_priority) + 0.0001, rndValidIndices[1])
 
             except SliceError as e:
                 warn("Training not done - " + str(e), AgentWarning)
 
-        return {}
+        return {'q-loss': loss}
 
     def get_weights(self):
         weights = self._learning_algo.getAllParams()
