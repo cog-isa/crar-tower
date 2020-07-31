@@ -39,7 +39,7 @@ def training_workflow(config, reporter):
         lambda c: CatcherEnv(rng, higher_dim_obs=params.HIGHER_DIM_OBS, reverse=False),
         CrarPolicy,
         policy_config=custom_config,
-        rollout_fragment_length=1)
+        rollout_fragment_length=90)
 
     # policy = worker.get_policy()
 

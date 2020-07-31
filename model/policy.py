@@ -142,15 +142,11 @@ class CrarPolicy(Policy):
         transition_loss = None
         reward_loss = None
         gamma_loss = None
-        # sample a random batch of data and perform a Q-learning iteration
-        # make sure replay has enough samples
+
         if self._dataset.n_elems > self._replay_start_size:
-            try:
-                if hasattr(self._learning_algo, 'nstep'):
-                    assert False, 'CRYA CRYA'
-                    #observations, actions, rewards, terminals, rndValidIndices = self._dataset.randomBatch_nstep(
-                    #    self._batch_size, self._learning_algo.nstep, self._exp_priority)
-                    #loss, loss_ind = self._learning_algo.train(observations, actions, rewards, terminals)
+            n_samples = len(obs)
+
+            for _ in range(n_samples):
                 states, actions, rewards, next_states, terminals, rndValidIndices = self._dataset.randomBatch(
                     self._batch_size, self._exp_priority)
                 q_loss, loss_ind, transition_loss, reward_loss, gamma_loss = \
@@ -158,9 +154,6 @@ class CrarPolicy(Policy):
 
                 if self._exp_priority:
                     self._dataset.updatePriorities(pow(loss_ind, self._exp_priority) + 0.0001, rndValidIndices[1])
-
-            except SliceError as e:
-                warn("Training not done - " + str(e), AgentWarning)
 
         self._lr_scheduler.new_samples_seen(len(obs))
 
