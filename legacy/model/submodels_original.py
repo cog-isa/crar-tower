@@ -303,25 +303,11 @@ class NN():
             inputs.append(Input(shape=(self._n_actions,)))
             Tx= transition_model([Tx,inputs[-1]])
                         
-        # x = Subtract()([Tx,enc_x_])
-
-        # make pairwise difference matrix instead of subtraction
-        x_hat = Tx
-        x_next = enc_x_
-
-        def pairwise_l2_dist(tensors):
-            expanded_a = tf.expand_dims(tensors[0], 1)
-            expanded_b = tf.expand_dims(tensors[1], 0)
-            squares = tf.reduce_sum(tf.math.squared_difference(expanded_a, expanded_b), 2)
-            return -1 * tf.math.sqrt(squares)
-
-        negative_distance_matrix = Lambda(pairwise_l2_dist)([x_hat, x_next])
-
-        x = negative_distance_matrix
+        x = Subtract()([Tx,enc_x_])
 
         input = Input(shape=(1,)) # 1-terminals (0 if transition is terminal)
         inputs.append(input)
-        # x = Multiply()([x,inputs[-1]])# set to 0 if terminal because we don't care about fitting that transition
+        x = Multiply()([x,inputs[-1]])# set to 0 if terminal because we don't care about fitting that transition
         
         model = Model(inputs=inputs, outputs=x)
         

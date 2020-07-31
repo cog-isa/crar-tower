@@ -234,8 +234,7 @@ class CRAR(LearningAlgo):
 
         # Fit transition
         x = states_val + next_states_val + [onehot_actions] + [(1 - terminals_val)]
-        n_points = states_val[0].shape[0]
-        self.loss_T += self.diff_Tx_x_.train_on_batch(x, np.eye(n_points))
+        self.loss_T += self.diff_Tx_x_.train_on_batch(x, np.zeros_like(Es))
 
         # Fit rewards
         self.lossR += self.full_R.train_on_batch(states_val + [onehot_actions], rewards_val)
@@ -254,10 +253,12 @@ class CRAR(LearningAlgo):
         rolled = np.roll(states_val[0], 1, axis=0)
 
         # exp_loss with pairwise random states
-        # self.loss_disambiguate2+=self.encoder_diff.train_on_batch([states_val[0],rolled],np.reshape(np.zeros_like(Es),(self._batch_size,-1)))
-
+        self.loss_disambiguate2 += self.encoder_diff.train_on_batch([states_val[0], rolled],
+                                                                    np.reshape(np.zeros_like(Es),
+                                                                        (self._batch_size, -1)))
         # exp_loss with consecutive states
-        # self.loss_disentangle_t+=self.diff_s_s_.train_on_batch(states_val+next_states_val, np.reshape(np.zeros_like(Es),(self._batch_size,-1)))
+        self.loss_disentangle_t += self.diff_s_s_.train_on_batch(states_val + next_states_val,
+                                                                 np.reshape(np.zeros_like(Es), (self._batch_size, -1)))
 
         # Interpretable AI
         """
@@ -558,7 +559,7 @@ class CRAR(LearningAlgo):
 
         self.full_Q.compile(optimizer=optimizer, loss='mse')
 
-        self.diff_Tx_x_.compile(optimizer=optimizer1, loss=npairs_loss)  # Fit transitions
+        self.diff_Tx_x_.compile(optimizer=optimizer1, loss='mse')  # Fit transitions
         self.full_R.compile(optimizer=optimizer3, loss='mse')  # Fit rewards
         self.full_gamma.compile(optimizer=optimizer3, loss='mse')  # Fit discount
 
