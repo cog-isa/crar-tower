@@ -138,7 +138,10 @@ class CrarPolicy(Policy):
         for s, a, r, s_next, done in zip(obs, actions, rewards, next_obs, dones):
             self._dataset.addSample(s, a, r, done, priority=1)
 
-        loss = None
+        q_loss = None
+        transition_loss = None
+        reward_loss = None
+        gamma_loss = None
         # sample a random batch of data and perform a Q-learning iteration
         # make sure replay has enough samples
         if self._dataset.n_elems > self._replay_start_size:
@@ -150,7 +153,7 @@ class CrarPolicy(Policy):
                     #loss, loss_ind = self._learning_algo.train(observations, actions, rewards, terminals)
                 states, actions, rewards, next_states, terminals, rndValidIndices = self._dataset.randomBatch(
                     self._batch_size, self._exp_priority)
-                loss, loss_ind, transition_loss, reward_loss, gamma_loss = \
+                q_loss, loss_ind, transition_loss, reward_loss, gamma_loss = \
                     self._learning_algo.train(states, actions, rewards, next_states, terminals)
 
                 if self._exp_priority:
@@ -161,7 +164,7 @@ class CrarPolicy(Policy):
 
         self._lr_scheduler.new_samples_seen(len(obs))
 
-        return {'q_loss': loss,
+        return {'q_loss': q_loss,
                 'transition_loss': transition_loss,
                 'reward_loss': reward_loss,
                 'gamma_loss': gamma_loss,

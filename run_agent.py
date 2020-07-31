@@ -23,7 +23,7 @@ tf_init_gpus()
 
 def training_workflow(config, reporter):
 
-    parsed_params = default_parser.process_args(sys.argv[1:], params.Defaults)
+    parsed_params = config['parsed_params']
 
     rng = np.random.RandomState(123456)
 
@@ -38,7 +38,8 @@ def training_workflow(config, reporter):
     worker = RolloutWorker(
         lambda c: CatcherEnv(rng, higher_dim_obs=params.HIGHER_DIM_OBS, reverse=False),
         CrarPolicy,
-        policy_config=custom_config)
+        policy_config=custom_config,
+        rollout_fragment_length=1)
 
     # policy = worker.get_policy()
 
@@ -58,11 +59,15 @@ def training_workflow(config, reporter):
 
 
 if __name__ == '__main__':
-    ray.init(local_mode=True)
+    ray.init(local_mode=False,
+             webui_host='127.0.0.1')
+
+    parsed_params = default_parser.process_args(sys.argv[1:], params.Defaults)
 
     config = {
         'num_workers': 0,
         'num_iters': 10000,
+        'parsed_params': parsed_params,
         'env_config': {
             'wandb': {
                 'project': 'crar-tower'
@@ -72,7 +77,7 @@ if __name__ == '__main__':
 
     tune.run(training_workflow,
              resources_per_trial={
-                 "gpu": 2,
+                 "gpu": 0,
                  "cpu": os.cpu_count()
              },
              config=config,
