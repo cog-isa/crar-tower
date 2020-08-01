@@ -2,16 +2,14 @@ import sys
 import os
 
 import numpy as np
-import gym
 import ray
-from ray.rllib.policy.sample_batch import SampleBatch
 from ray.rllib.evaluation import RolloutWorker
 from ray.rllib.evaluation.metrics import collect_metrics
 from ray import tune
 from wandb.ray import WandbLogger
 
 from model.policy import CrarPolicy
-from envs.env_wrapper import make_obstacle_tower_env
+from envs.env_wrapper import make_obstacle_tower_env, ObstacleTowerEnvStub
 from envs.env_wrapper import CatcherEnv
 from utils.tf_utils import tf_init_gpus
 
@@ -20,23 +18,29 @@ from legacy.utils import default_parser
 
 tf_init_gpus()
 
+ENV = 'obstacle-tower'
+
 
 def training_workflow(config, reporter):
-
     parsed_params = config['parsed_params']
 
     rng = np.random.RandomState(123456)
 
-    # setup policy and evaluation actors
-    # env = make_obstacle_tower_env()
-    env = CatcherEnv(rng, higher_dim_obs=params.HIGHER_DIM_OBS, reverse=False)
+    if ENV == 'catcher':
+        env_creator = lambda ctx: CatcherEnv(rng, higher_dim_obs=params.HIGHER_DIM_OBS, reverse=False)
+        env_stub = env_creator(None)
+    elif ENV == 'obstacle-tower':
+        env_creator = make_obstacle_tower_env
+        env_stub = ObstacleTowerEnvStub()
+    else:
+        assert False
 
     custom_config = vars(parsed_params)
-    custom_config['env'] = env
+    custom_config['env'] = env_stub
     custom_config['rng'] = rng
 
     worker = RolloutWorker(
-        lambda c: CatcherEnv(rng, higher_dim_obs=params.HIGHER_DIM_OBS, reverse=False),
+        env_creator,
         CrarPolicy,
         policy_config=custom_config,
         rollout_fragment_length=100)
@@ -77,7 +81,7 @@ if __name__ == '__main__':
 
     tune.run(training_workflow,
              resources_per_trial={
-                 "gpu": 2,
+                 "gpu": 0,
                  "cpu": os.cpu_count()
              },
              config=config,

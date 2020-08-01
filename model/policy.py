@@ -3,7 +3,6 @@ from warnings import warn
 import numpy as np
 from ray.rllib.policy.policy import Policy
 
-from envs.env_wrapper import ObstacleTowerEnvStub
 from legacy import params
 from legacy.model import algo_original
 from legacy.epsilon_greedy_policy import EpsilonGreedyPolicy
@@ -135,6 +134,8 @@ class CrarPolicy(Policy):
         rewards = samples[samples.REWARDS]
         next_obs = samples[samples.NEXT_OBS]
         dones = samples[samples.DONES]
+        infos = samples[samples.INFOS]
+
         for s, a, r, s_next, done in zip(obs, actions, rewards, next_obs, dones):
             self._dataset.addSample(s, a, r, done, priority=1)
 
@@ -157,11 +158,18 @@ class CrarPolicy(Policy):
 
             self._lr_scheduler.new_samples_seen(n_samples)
 
-        return {'q_loss': q_loss,
-                'transition_loss': transition_loss,
-                'reward_loss': reward_loss,
-                'gamma_loss': gamma_loss,
-                'lr': self._lr_scheduler.lr}
+        out = {'q_loss': q_loss,
+               'transition_loss': transition_loss,
+               'reward_loss': reward_loss,
+               'gamma_loss': gamma_loss,
+               'lr': self._lr_scheduler.lr}
+
+        # tmp stub for computing metric
+        if 'current_floor' in infos[0]:
+            max_floor = max(info["current_floor"] for info in infos)
+            out['max_floor'] = max_floor
+
+        return out
 
     def get_weights(self):
         weights = self._learning_algo.getAllParams()
