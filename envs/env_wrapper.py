@@ -3,17 +3,31 @@ import pathlib
 import numpy as np
 import gym
 
+from obstacle_tower_env import ObstacleTowerEnv
 from legacy.env import LegacyCatcherEnv
 
 
 def make_obstacle_tower_env(ctx):
-    from obstacle_tower_env import ObstacleTowerEnv
-
     base_path = pathlib.Path(__file__).parent.absolute()
     path_to_binary = (base_path / '../obstacle-tower-env/ObstacleTower/obstacletower.x86_64').as_posix()
-    env = ObstacleTowerEnv(environment_filename=path_to_binary,
-                           greyscale=True)
+    env = ObstacleTowerEnvWrapper(environment_filename=path_to_binary,
+                                  greyscale=True)
     return env
+
+
+class ObstacleTowerEnvWrapper(ObstacleTowerEnv):
+    def _preprocess_observation(self, obs):
+        return obs / 255.
+
+    def step(self, action):
+        obs, reward, done, info = super().step(action)
+        prep_obs = self._preprocess_observation(obs)
+        return prep_obs, reward, done, info
+
+    def reset(self, **kwargs):
+        obs = super().reset(**kwargs)
+        prep_obs = self._preprocess_observation(obs)
+        return prep_obs
 
 
 class ObstacleTowerEnvStub:
