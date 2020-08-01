@@ -81,7 +81,7 @@ if __name__ == '__main__':
 
     tune.run(training_workflow,
              resources_per_trial={
-                 "gpu": 0,
+                 "gpu": 1,
                  "cpu": os.cpu_count()
              },
              config=config,

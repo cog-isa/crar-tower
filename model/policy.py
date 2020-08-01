@@ -102,9 +102,6 @@ class CrarPolicy(Policy):
                         timestep=None,
                         **kwargs):
 
-        # print(f'compute_actions() with obs_batch len {len(obs_batch)}, id {self._action_counter}')
-        # self._action_counter += 1
-
         def legacy_choose_action(state):
             if self._mode != -1:
                 # Act according to the test policy if not in training mode
@@ -119,11 +116,11 @@ class CrarPolicy(Policy):
                     action, V = self._train_policy.randomAction()
             return action
 
-        actions = np.array([legacy_choose_action([obs])
+        # more hacks
+        # one more dimension was added in stupid 1-size state queue, but only during predict_action
+        # sampling from buffer results in ndarr( ndarr(32, 1, 1, 84, 84) ) ...
+        actions = np.array([legacy_choose_action([np.transpose(obs, axes=(2, 0, 1))[None]])
                             for obs in obs_batch])
-
-        #actions = np.array([self.action_space.sample()
-        #                    for _ in obs_batch])
 
         return actions, [], {}
 
@@ -137,6 +134,8 @@ class CrarPolicy(Policy):
         infos = samples[samples.INFOS]
 
         for s, a, r, s_next, done in zip(obs, actions, rewards, next_obs, dones):
+            # hack from original framework
+            s = [np.transpose(s, axes=(2, 0, 1))]
             self._dataset.addSample(s, a, r, done, priority=1)
 
         q_loss = None
