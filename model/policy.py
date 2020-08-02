@@ -9,6 +9,7 @@ from legacy.epsilon_greedy_policy import EpsilonGreedyPolicy
 from legacy.replay.dataset import DataSet
 from legacy.utils.exceptions import AgentError, AgentWarning, SliceError
 from legacy.model.controllers import LearningRateScheduler
+from .rnd import RandomNetworkDistillator
 
 
 class CrarPolicy(Policy):
@@ -39,6 +40,8 @@ class CrarPolicy(Policy):
                                                    config['learning_rate_decay'],
                                                    decay_every=2000,
                                                    learning_algo=learning_algo)
+
+        self._rnd = RandomNetworkDistillator(observation_space)
 
     def _legacy_init(self, config, env_stub, rng, learning_algo):
         """
@@ -125,6 +128,11 @@ class CrarPolicy(Policy):
         next_obs = samples[samples.NEXT_OBS]
         dones = samples[samples.DONES]
         infos = samples[samples.INFOS]
+
+        if self.config['use_rnd']:
+            normalized_next_obs = self._rnd.obs_stats.normalize(next_obs)
+            intrinsic_rewards = self._rnd.get_intrinsic_reward(normalized_next_obs)
+            rewards += intrinsic_rewards
 
         for s, a, r, s_next, done in zip(obs, actions, rewards, next_obs, dones):
             # hack from original framework
