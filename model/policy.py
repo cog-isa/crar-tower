@@ -16,7 +16,6 @@ class CrarPolicy(Policy):
     def __init__(self, observation_space, action_space, config):
         super().__init__(observation_space, action_space, config)
 
-        # env_stub = ObstacleTowerEnvStub()
         env_stub = config['env']
 
         learning_algo = algo_original.CRAR(
@@ -103,23 +102,17 @@ class CrarPolicy(Policy):
                         **kwargs):
 
         def legacy_choose_action(state):
-            if self._mode != -1:
-                # Act according to the test policy if not in training mode
-                action, V = self._test_policy.action(state, mode=self._mode, dataset=self._dataset)
+            if self._dataset.n_elems > self._replay_start_size:
+                # follow the train policy
+                state[0] = state[0] / 255
+                action, V = self._train_policy.action(state, mode=None,
+                                                      dataset=self._dataset)
             else:
-                if self._dataset.n_elems > self._replay_start_size:
-                    # follow the train policy
-                    action, V = self._train_policy.action(state, mode=None,
-                                                          dataset=self._dataset)
-                else:
-                    # Still gathering initial data: choose dummy action
-                    action, V = self._train_policy.randomAction()
+                # Still gathering initial data: choose dummy action
+                action, V = self._train_policy.randomAction()
             return action
 
-        # more hacks
-        # one more dimension was added in stupid 1-size state queue, but only during predict_action
-        # sampling from buffer results in ndarr( ndarr(32, 1, 1, 84, 84) ) ...
-        actions = np.array([legacy_choose_action([np.transpose(obs, axes=(2, 0, 1))[None]])
+        actions = np.array([legacy_choose_action([obs[None]])
                             for obs in obs_batch])
 
         return actions, [], {}
@@ -135,7 +128,7 @@ class CrarPolicy(Policy):
 
         for s, a, r, s_next, done in zip(obs, actions, rewards, next_obs, dones):
             # hack from original framework
-            s = [np.transpose(s, axes=(2, 0, 1))]
+            s = [s]
             self._dataset.addSample(s, a, r, done, priority=1)
 
         q_loss = None
@@ -149,6 +142,9 @@ class CrarPolicy(Policy):
             for _ in range(n_samples):
                 states, actions, rewards, next_states, terminals, rndValidIndices = self._dataset.randomBatch(
                     self._batch_size, self._exp_priority)
+
+                states[0] = states[0] / 255.
+
                 q_loss, loss_ind, transition_loss, reward_loss, gamma_loss = \
                     self._learning_algo.train(states, actions, rewards, next_states, terminals)
 

@@ -11,13 +11,20 @@ def make_obstacle_tower_env(ctx):
     base_path = pathlib.Path(__file__).parent.absolute()
     path_to_binary = (base_path / '../obstacle-tower-env/ObstacleTower/obstacletower.x86_64').as_posix()
     env = ObstacleTowerEnvWrapper(environment_filename=path_to_binary,
-                                  greyscale=True)
+                                  greyscale=False)
     return env
 
 
 class ObstacleTowerEnvWrapper(ObstacleTowerEnv):
+    @property
+    def observation_space(self):
+        return gym.spaces.Box(0, 255, shape=(3, 84, 84))
+
     def _preprocess_observation(self, obs):
-        return obs / 255.
+        # transpose to channels first
+        obs = np.transpose(obs, axes=(2, 0, 1))
+
+        return obs
 
     def step(self, action):
         obs, reward, done, info = super().step(action)
@@ -32,9 +39,8 @@ class ObstacleTowerEnvWrapper(ObstacleTowerEnv):
 
 class ObstacleTowerEnvStub:
     def inputDimensions(self):
-        frame_stack_size = 1
-        obs_shape = (1, 84, 84)
-        return [(frame_stack_size,) + obs_shape]
+        obs_shape = (1, 3, 84, 84)
+        return [obs_shape]
 
     def observationType(self, subject):
         return np.uint8
