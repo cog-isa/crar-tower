@@ -18,7 +18,7 @@ from legacy.utils import default_parser
 
 tf_init_gpus()
 
-DEBUG = True
+DEBUG = False
 ENV = 'obstacle-tower'
 USE_RND = True
 
