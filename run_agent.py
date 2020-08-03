@@ -16,7 +16,6 @@ from utils.tf_utils import tf_init_gpus
 from legacy import params
 from legacy.utils import default_parser
 
-tf_init_gpus()
 
 DEBUG = False
 ENV = 'obstacle-tower'
@@ -24,6 +23,8 @@ USE_RND = True
 
 
 def training_workflow(config, reporter):
+    tf_init_gpus()
+    
     parsed_params = config['parsed_params']
 
     rng = np.random.RandomState(123456)
