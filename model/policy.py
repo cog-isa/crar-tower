@@ -129,11 +129,6 @@ class CrarPolicy(Policy):
         dones = samples[samples.DONES]
         infos = samples[samples.INFOS]
 
-        if self.config['use_rnd']:
-            normalized_next_obs = self._rnd.obs_stats.normalize(next_obs)
-            intrinsic_rewards = self._rnd.get_intrinsic_reward(normalized_next_obs)
-            rewards += intrinsic_rewards
-
         for s, a, r, s_next, done in zip(obs, actions, rewards, next_obs, dones):
             # hack from original framework
             s = [s]
@@ -143,7 +138,10 @@ class CrarPolicy(Policy):
         transition_loss = None
         reward_loss = None
         gamma_loss = None
+        report = {}
 
+        intrinsic_rewards_total = []
+        distill_loss_total = []
         if self._dataset.n_elems > self._replay_start_size:
             n_samples = len(obs)
 
@@ -153,6 +151,15 @@ class CrarPolicy(Policy):
 
                 states[0] = states[0] / 255.
 
+                # rnd
+                if self.config['use_rnd']:
+                    obs_batch = next_states[0]
+                    intrinsic_rewards, distill_loss = self._rnd.distill(obs_batch)
+                    rewards += intrinsic_rewards
+
+                    intrinsic_rewards_total.extend(intrinsic_rewards)
+                    distill_loss_total.append(distill_loss)
+
                 q_loss, loss_ind, transition_loss, reward_loss, gamma_loss = \
                     self._learning_algo.train(states, actions, rewards, next_states, terminals)
 
@@ -161,18 +168,23 @@ class CrarPolicy(Policy):
 
             self._lr_scheduler.new_samples_seen(n_samples)
 
-        out = {'q_loss': q_loss,
-               'transition_loss': transition_loss,
-               'reward_loss': reward_loss,
-               'gamma_loss': gamma_loss,
-               'lr': self._lr_scheduler.lr}
+            # report rnd stats
+            report['intrinsic_reward_max'] = max(intrinsic_rewards_total)
+            report['intrinsic_reward_min'] = min(intrinsic_rewards_total)
+            report['intrinsic_reward_mean'] = sum(intrinsic_rewards_total) / len(intrinsic_rewards_total)
+            report['distill_loss_mean'] = sum(distill_loss_total) / len(distill_loss_total)
 
         # tmp stub for computing metric
         if 'current_floor' in infos[0]:
             max_floor = max(info["current_floor"] for info in infos)
-            out['max_floor'] = max_floor
+            report['max_floor'] = max_floor
 
-        return out
+        return {**report,
+                'q_loss': q_loss,
+               'transition_loss': transition_loss,
+               'reward_loss': reward_loss,
+               'gamma_loss': gamma_loss,
+               'lr': self._lr_scheduler.lr}
 
     def get_weights(self):
         weights = self._learning_algo.getAllParams()

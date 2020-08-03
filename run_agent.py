@@ -9,7 +9,7 @@ from ray import tune
 from wandb.ray import WandbLogger
 
 from model.policy import CrarPolicy
-from envs.env_wrapper import make_obstacle_tower_env, ObstacleTowerEnvStub
+from envs.env_wrapper import make_obstacle_tower_env, ObstacleTowerEnvStub, DebugObstacleTowerEnv
 from envs.env_wrapper import CatcherEnv
 from utils.tf_utils import tf_init_gpus
 
@@ -18,7 +18,9 @@ from legacy.utils import default_parser
 
 tf_init_gpus()
 
+DEBUG = True
 ENV = 'obstacle-tower'
+USE_RND = True
 
 
 def training_workflow(config, reporter):
@@ -26,18 +28,23 @@ def training_workflow(config, reporter):
 
     rng = np.random.RandomState(123456)
 
-    if ENV == 'catcher':
-        env_creator = lambda ctx: CatcherEnv(rng, higher_dim_obs=params.HIGHER_DIM_OBS, reverse=False)
-        env_stub = env_creator(None)
-    elif ENV == 'obstacle-tower':
-        env_creator = make_obstacle_tower_env
-        env_stub = ObstacleTowerEnvStub()
+    if not DEBUG:
+        if ENV == 'catcher':
+            env_creator = lambda ctx: CatcherEnv(rng, higher_dim_obs=params.HIGHER_DIM_OBS, reverse=False)
+            env_stub = env_creator(None)
+        elif ENV == 'obstacle-tower':
+            env_creator = make_obstacle_tower_env
+            env_stub = ObstacleTowerEnvStub()
+        else:
+            assert False
     else:
-        assert False
+        env_creator = lambda ctx: DebugObstacleTowerEnv()
+        env_stub = ObstacleTowerEnvStub()
 
     custom_config = vars(parsed_params)
     custom_config['env'] = env_stub
     custom_config['rng'] = rng
+    custom_config['use_rnd'] = config['use_rnd']
 
     worker = RolloutWorker(
         env_creator,
@@ -63,7 +70,7 @@ def training_workflow(config, reporter):
 
 
 if __name__ == '__main__':
-    ray.init(local_mode=False,
+    ray.init(local_mode=DEBUG,
              webui_host='127.0.0.1')
 
     parsed_params = default_parser.process_args(sys.argv[1:], params.Defaults)
@@ -72,11 +79,8 @@ if __name__ == '__main__':
         'num_workers': 0,
         'num_iters': 10000,
         'parsed_params': parsed_params,
-        'env_config': {
-            'wandb': {
-                'project': 'crar-tower'
-            }
-        }
+        'use_rnd': USE_RND,
+        'env_config': {'wandb': {'project': 'crar-tower'}}
     }
 
     tune.run(training_workflow,

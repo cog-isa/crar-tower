@@ -1,5 +1,5 @@
 from keras import Input, Model
-from keras import layers
+from keras import layers, optimizers
 import numpy as np
 
 
@@ -7,30 +7,36 @@ class RandomNetworkDistillator:
     def __init__(self, obs_space):
         self.obs_shape = obs_space.shape
 
-        self.predictor_network = self._make_fc_network()
-        self.target_network = self._make_fc_network()
+        self._predictor_network = self._make_fc_network()
+        self._target_network = self._make_fc_network()
 
-        self.ext_reward_stats = RunningStats(shape=(1,))
         self.int_reward_stats = RunningStats(shape=(1,))
-        self.obs_stats = RunningStats(shape=(100,))
+        self.obs_stats = RunningStats(shape=self.obs_shape)
+
+    def distill(self, obs):
+        # normalize obs
+        normed_obs = self.obs_stats.normalize(obs)
+
+        # compute intrinsic rewards
+        target = self._target_network.predict(normed_obs)
+        pred = self._predictor_network.predict(normed_obs)
+
+        intrinsic_rewards = ((target - pred) ** 2).sum(axis=1)
+        normed_int_rewards = self.int_reward_stats.normalize(intrinsic_rewards)
+
+        # fit predictor
+        loss = self._predictor_network.fit(x=normed_obs, y=target, epochs=10, verbose=0)
+
+        return normed_int_rewards, loss
 
     def _make_fc_network(self):
-        input_item = Input(shape=self.obs_shape)
-        h = layers.Dense(200, activation='relu')(input_item)
+        input_item = Input(shape=(1,)+self.obs_shape)
+        h = layers.Flatten()(input_item)
+        h = layers.Dense(200, activation='relu')(h)
         out = layers.Dense(100, activation='relu')(h)
         model = Model(inputs=input_item, outputs=out)
-        model.compile(loss='mse')
+        model.compile(loss='mse', optimizer=optimizers.RMSprop())
         return model
-
-    def get_intrinsic_reward(self, obs):
-        a = self.predictor_network.predict(obs)
-        b = self.target_network.predict(obs)
-        mse = np.mean((a - b) ** 2, axis=1)
-        return mse
-
-    def fit(self, obs):
-        target = self.target_network.predict(obs)
-        self.predictor_network.fit(x=obs, y=target, epochs=10)
 
 
 class RunningStats:
@@ -43,13 +49,13 @@ class RunningStats:
         self.std = np.ones(shape, 'float64')
         self.count = epsilon
 
-    def update(self, x):
+    def _update(self, x):
         batch_mean = np.mean(x, axis=0)
         batch_var = np.var(x, axis=0)
         batch_count = x.shape[0]
-        self.update_from_moments(batch_mean, batch_var, batch_count)
+        self._update_from_moments(batch_mean, batch_var, batch_count)
 
-    def update_from_moments(self, batch_mean, batch_var, batch_count):
+    def _update_from_moments(self, batch_mean, batch_var, batch_count):
         delta = batch_mean - self.mean
 
         new_mean = self.mean + delta * batch_count / (self.count + batch_count)
@@ -64,7 +70,7 @@ class RunningStats:
         self.count = batch_count + self.count
 
     def normalize(self, buff, clip = 1, clip_state = False):
-        self.update(np.array(buff))
+        self._update(np.array(buff))
         buff = (np.array(buff) - self.mean) / self.std
         if clip_state:
             buff = np.clip(buff, -clip, clip)

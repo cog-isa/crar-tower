@@ -49,6 +49,20 @@ class ObstacleTowerEnvStub:
         return 54
 
 
+class DebugObstacleTowerEnv(ObstacleTowerEnvWrapper):
+    def __init__(self, *args, **kwargs):
+        self._action_space = gym.spaces.Discrete(54)
+        self._observation_space = gym.spaces.Box(0, 255, shape=(3, 84, 84))
+
+        self._obs = np.ones((3, 84, 84), dtype=np.uint8)
+
+    def reset(self):
+        return self._obs
+
+    def step(self, action):
+        return self._obs, 0.0, False, {}
+
+
 class CatcherEnv(LegacyCatcherEnv):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
