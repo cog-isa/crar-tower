@@ -158,7 +158,7 @@ class CrarPolicy(Policy):
                     rewards += intrinsic_rewards
 
                     intrinsic_rewards_total.extend(intrinsic_rewards)
-                    distill_loss_total.append(distill_loss.history['loss'])
+                    distill_loss_total.append(distill_loss.history['loss'][-1])
 
                 q_loss, loss_ind, transition_loss, reward_loss, gamma_loss = \
                     self._learning_algo.train(states, actions, rewards, next_states, terminals)
