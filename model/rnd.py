@@ -8,7 +8,7 @@ class RandomNetworkDistillator:
         self.obs_shape = obs_space.shape
 
         self._predictor_network = self._make_fc_network()
-        self._target_network = self._make_fc_network()
+        self._target_network = self._make_fc_network(trainable=False)
 
         self.int_reward_stats = RunningStats(shape=(1,), is_running=False)
         self.obs_stats = RunningStats(shape=self.obs_shape, is_running=False)
@@ -29,7 +29,7 @@ class RandomNetworkDistillator:
 
         return normed_int_rewards, loss
 
-    def _make_fc_network(self):
+    def _make_fc_network(self, trainable=True):
         initializer = initializers.he_normal()
 
         input_item = Input(shape=(1,)+self.obs_shape)
@@ -37,6 +37,9 @@ class RandomNetworkDistillator:
         h = layers.Dense(200, activation='relu', kernel_initializer=initializer)(h)
         out = layers.Dense(100, kernel_initializer=initializer)(h)
         model = Model(inputs=input_item, outputs=out)
+
+        if not trainable:
+            model.trainable = False
         model.compile(loss='mse', optimizer=optimizers.RMSprop())
         return model
 
