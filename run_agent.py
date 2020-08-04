@@ -17,7 +17,7 @@ from legacy import params
 from legacy.utils import default_parser
 
 
-DEBUG = True
+DEBUG = False
 ENV = 'obstacle-tower'
 USE_RND = True
 
@@ -51,7 +51,7 @@ def training_workflow(config, reporter):
         env_creator,
         CrarPolicy,
         policy_config=custom_config,
-        rollout_fragment_length=2)
+        rollout_fragment_length=100)
 
     # policy = worker.get_policy()
 
