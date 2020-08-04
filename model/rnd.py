@@ -1,5 +1,5 @@
 from keras import Input, Model
-from keras import layers, optimizers
+from keras import layers, optimizers, initializers
 import numpy as np
 
 
@@ -30,10 +30,12 @@ class RandomNetworkDistillator:
         return normed_int_rewards, loss
 
     def _make_fc_network(self):
+        initializer = initializers.he_normal()
+
         input_item = Input(shape=(1,)+self.obs_shape)
         h = layers.Flatten()(input_item)
-        h = layers.Dense(200, activation='relu')(h)
-        out = layers.Dense(100, activation='relu')(h)
+        h = layers.Dense(200, activation='relu', kernel_initializer=initializer)(h)
+        out = layers.Dense(100, kernel_initializer=initializer)(h)
         model = Model(inputs=input_item, outputs=out)
         model.compile(loss='mse', optimizer=optimizers.RMSprop())
         return model
@@ -77,5 +79,5 @@ class RunningStats:
         self._update(np.array(buff))
         buff = (np.array(buff) - self.mean) / self.std
         if clip_state:
-            buff = np.clip(buff, 0, clip)
+            buff = np.clip(buff, -clip, clip)
         return buff
