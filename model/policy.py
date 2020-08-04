@@ -42,6 +42,8 @@ class CrarPolicy(Policy):
 
         self._rnd = RandomNetworkDistillator(observation_space)
         self._step_idx = 0
+        wandb.init(project='crar-tower',
+                   group=config['experiment_id'])
 
     def _legacy_init(self, config, env_stub, rng, learning_algo):
         """

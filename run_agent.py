@@ -6,6 +6,7 @@ import ray
 from ray.rllib.evaluation import RolloutWorker
 from ray.rllib.evaluation.metrics import collect_metrics
 from ray import tune
+import wandb
 from wandb.ray import WandbLogger
 
 from model.policy import CrarPolicy
@@ -46,6 +47,7 @@ def training_workflow(config, reporter):
     custom_config['env'] = env_stub
     custom_config['rng'] = rng
     custom_config['use_rnd'] = config['use_rnd']
+    custom_config['experiment_id'] = config['experiment_id']
 
     worker = RolloutWorker(
         env_creator,
@@ -76,12 +78,15 @@ if __name__ == '__main__':
 
     parsed_params = default_parser.process_args(sys.argv[1:], params.Defaults)
 
+    experiment_id = wandb.util.generate_id()
     config = {
         'num_workers': 0,
         'num_iters': 10000,
         'parsed_params': parsed_params,
         'use_rnd': USE_RND,
-        'env_config': {'wandb': {'project': 'crar-tower'}}
+        'experiment_id': experiment_id,
+        'env_config': {'wandb': {'project': 'crar-tower',
+                                 'group': experiment_id}}
     }
 
     tune.run(training_workflow,
