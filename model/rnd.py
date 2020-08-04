@@ -22,7 +22,7 @@ class RandomNetworkDistillator:
         pred = self._predictor_network.predict(normed_obs)
 
         intrinsic_rewards = ((target - pred) ** 2).sum(axis=1)
-        normed_int_rewards = self.int_reward_stats.normalize(intrinsic_rewards, clip_state=True, clip=0.5)
+        normed_int_rewards = self.int_reward_stats.normalize(intrinsic_rewards, clip_state=True, clip=0.3)
 
         # fit predictor
         loss = self._predictor_network.fit(x=normed_obs, y=target, epochs=10, verbose=0)

@@ -42,8 +42,8 @@ class CrarPolicy(Policy):
 
         self._rnd = RandomNetworkDistillator(observation_space)
         self._step_idx = 0
-        wandb.init(project='crar-tower',
-                   group=config['experiment_id'])
+        #wandb.init(project='crar-tower',
+        #           group=config['experiment_id'])
 
     def _legacy_init(self, config, env_stub, rng, learning_algo):
         """
@@ -143,6 +143,7 @@ class CrarPolicy(Policy):
         report = {}
 
         intrinsic_rewards_total = []
+        distill_loss = None
         if self._dataset.n_elems > self._replay_start_size:
             n_samples = len(obs)
 
@@ -159,8 +160,6 @@ class CrarPolicy(Policy):
                     rewards += intrinsic_rewards
 
                     intrinsic_rewards_total.extend(intrinsic_rewards)
-                    for loss in distill_loss.history['loss']:
-                        wandb.log({'distill_loss': loss})
 
                 # train
                 q_loss, loss_ind, transition_loss, reward_loss, gamma_loss = \
@@ -175,6 +174,7 @@ class CrarPolicy(Policy):
             report['intrinsic_reward_max'] = max(intrinsic_rewards_total)
             report['intrinsic_reward_min'] = min(intrinsic_rewards_total)
             report['intrinsic_reward_mean'] = sum(intrinsic_rewards_total) / len(intrinsic_rewards_total)
+            report['distill_loss'] = distill_loss.history['loss'][-1]
 
         # tmp stub for computing metric
         if 'current_floor' in infos[0]:
