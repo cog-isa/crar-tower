@@ -8,7 +8,7 @@ from legacy.epsilon_greedy_policy import EpsilonGreedyPolicy
 from legacy.replay.dataset import DataSet
 from legacy.utils.exceptions import AgentError, AgentWarning, SliceError
 from legacy.model.controllers import LearningRateScheduler
-from .rnd import RandomNetworkDistillator
+from .rnd import RandomNetworkDistillator, NextStatePredictingMotivation
 
 
 class CrarPolicy(Policy):
@@ -41,6 +41,7 @@ class CrarPolicy(Policy):
                                                    learning_algo=learning_algo)
 
         self._rnd = RandomNetworkDistillator(observation_space)
+        self._nsp = NextStatePredictingMotivation(learning_algo.encoder, learning_algo.transition, action_space)
         self._step_idx = 0
         #wandb.init(project='crar-tower',
         #           group=config['experiment_id'])
@@ -152,14 +153,22 @@ class CrarPolicy(Policy):
                     self._batch_size, self._exp_priority)
 
                 states[0] = states[0] / 255.
+                next_states[0] = next_states[0] / 255.
 
                 # rnd
                 if self.config['use_rnd']:
                     obs_batch = next_states[0]
                     intrinsic_rewards, distill_loss = self._rnd.distill(obs_batch)
                     rewards += intrinsic_rewards
-
                     intrinsic_rewards_total.extend(intrinsic_rewards)
+
+                # nsp
+                if self.config['use_nsp_motivation']:
+                    obs, obs_next = states[0], next_states[0]
+                    intrinsic_rewards = self._nsp.compute_intrinsic_rewards(obs, actions, obs_next)
+                    rewards += intrinsic_rewards
+                    intrinsic_rewards_total.extend(intrinsic_rewards)
+
 
                 # train
                 q_loss, loss_ind, transition_loss, reward_loss, gamma_loss = \
@@ -174,7 +183,9 @@ class CrarPolicy(Policy):
             report['intrinsic_reward_max'] = max(intrinsic_rewards_total)
             report['intrinsic_reward_min'] = min(intrinsic_rewards_total)
             report['intrinsic_reward_mean'] = sum(intrinsic_rewards_total) / len(intrinsic_rewards_total)
-            report['distill_loss'] = distill_loss.history['loss'][-1]
+
+            if self.config['use_rnd']:
+                report['distill_loss'] = distill_loss.history['loss'][-1]
 
         # tmp stub for computing metric
         if 'current_floor' in infos[0]:

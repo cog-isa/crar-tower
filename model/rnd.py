@@ -84,3 +84,26 @@ class RunningStats:
         if clip_state:
             buff = np.clip(buff, -clip, clip)
         return buff
+
+
+class NextStatePredictingMotivation:
+    def __init__(self, encoder, transition_model, action_space):
+        self._encoder = encoder
+        self._transition_model = transition_model
+        self._n_actions = action_space.n
+        self._clip_thr = 0.7
+
+    def compute_intrinsic_rewards(self, obs, actions, obs_next):
+        x = self._encoder.predict(obs)
+        x_next = self._encoder.predict(obs_next)
+
+        ohe_actions = np.zeros((x.shape[0], self._n_actions), dtype=np.int)
+        ohe_actions[:, actions] = 1
+        x_next_pred = self._transition_model.predict([x, ohe_actions])
+
+        squared_error = (x_next - x_next_pred) ** 2
+        intrinsic_rewards = squared_error.mean(axis=(1, 2, 3))
+        intrinsic_rewards = (intrinsic_rewards - intrinsic_rewards.mean()) \
+                            / np.maximum(intrinsic_rewards.std() * 3, 1e-4)
+        intrinsic_rewards = np.clip(intrinsic_rewards, -self._clip_thr, self._clip_thr)
+        return intrinsic_rewards

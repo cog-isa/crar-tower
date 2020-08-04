@@ -18,9 +18,10 @@ from legacy import params
 from legacy.utils import default_parser
 
 
-DEBUG = False
+DEBUG = os.environ.get('DEBUG', False)
 ENV = 'obstacle-tower'
-USE_RND = True
+USE_RND = False
+USE_NSP_MOTIVATION = True
 
 
 def training_workflow(config, reporter):
@@ -47,13 +48,15 @@ def training_workflow(config, reporter):
     custom_config['env'] = env_stub
     custom_config['rng'] = rng
     custom_config['use_rnd'] = config['use_rnd']
+    custom_config['use_nsp_motivation'] = config['use_nsp_motivation']
     custom_config['experiment_id'] = config['experiment_id']
 
+    n_steps = 100 if not DEBUG else 2
     worker = RolloutWorker(
         env_creator,
         CrarPolicy,
         policy_config=custom_config,
-        rollout_fragment_length=100)
+        rollout_fragment_length=n_steps)
 
     # policy = worker.get_policy()
 
@@ -84,6 +87,7 @@ if __name__ == '__main__':
         'num_iters': 10000,
         'parsed_params': parsed_params,
         'use_rnd': USE_RND,
+        'use_nsp_motivation': USE_NSP_MOTIVATION,
         'experiment_id': experiment_id,
         'env_config': {'wandb': {'project': 'crar-tower',
                                  'group': experiment_id}}
