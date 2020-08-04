@@ -17,14 +17,14 @@ from legacy import params
 from legacy.utils import default_parser
 
 
-DEBUG = False
+DEBUG = True
 ENV = 'obstacle-tower'
 USE_RND = True
 
 
 def training_workflow(config, reporter):
     tf_init_gpus()
-    
+
     parsed_params = config['parsed_params']
 
     rng = np.random.RandomState(123456)
@@ -51,7 +51,7 @@ def training_workflow(config, reporter):
         env_creator,
         CrarPolicy,
         policy_config=custom_config,
-        rollout_fragment_length=100)
+        rollout_fragment_length=2)
 
     # policy = worker.get_policy()
 

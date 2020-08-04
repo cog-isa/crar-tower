@@ -1,7 +1,6 @@
-from warnings import warn
-
 import numpy as np
 from ray.rllib.policy.policy import Policy
+import wandb
 
 from legacy import params
 from legacy.model import algo_original
@@ -42,6 +41,7 @@ class CrarPolicy(Policy):
                                                    learning_algo=learning_algo)
 
         self._rnd = RandomNetworkDistillator(observation_space)
+        self._step_idx = 0
 
     def _legacy_init(self, config, env_stub, rng, learning_algo):
         """
@@ -141,7 +141,6 @@ class CrarPolicy(Policy):
         report = {}
 
         intrinsic_rewards_total = []
-        distill_loss_total = []
         if self._dataset.n_elems > self._replay_start_size:
             n_samples = len(obs)
 
@@ -158,8 +157,10 @@ class CrarPolicy(Policy):
                     rewards += intrinsic_rewards
 
                     intrinsic_rewards_total.extend(intrinsic_rewards)
-                    distill_loss_total.append(distill_loss.history['loss'][-1])
+                    for loss in distill_loss.history['loss']:
+                        wandb.log({'distill_loss': loss})
 
+                # train
                 q_loss, loss_ind, transition_loss, reward_loss, gamma_loss = \
                     self._learning_algo.train(states, actions, rewards, next_states, terminals)
 
@@ -172,19 +173,21 @@ class CrarPolicy(Policy):
             report['intrinsic_reward_max'] = max(intrinsic_rewards_total)
             report['intrinsic_reward_min'] = min(intrinsic_rewards_total)
             report['intrinsic_reward_mean'] = sum(intrinsic_rewards_total) / len(intrinsic_rewards_total)
-            report['distill_loss_mean'] = sum(distill_loss_total) / len(distill_loss_total)
 
         # tmp stub for computing metric
         if 'current_floor' in infos[0]:
             max_floor = max(info["current_floor"] for info in infos)
             report['max_floor'] = max_floor
 
-        return {**report,
-                'q_loss': q_loss,
+        out = {**report,
+               'q_loss': q_loss,
                'transition_loss': transition_loss,
                'reward_loss': reward_loss,
                'gamma_loss': gamma_loss,
-               'lr': self._lr_scheduler.lr}
+               'lr': self._lr_scheduler.lr,
+               'learn_on_batch_step': self._step_idx}
+        self._step_idx += 1
+        return out
 
     def get_weights(self):
         weights = self._learning_algo.getAllParams()
